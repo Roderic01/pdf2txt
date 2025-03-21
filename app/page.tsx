@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense } from "react";
-import FileUploader from "./components/FileUploader";
+import DashboardTabs from "./components/DashboardTabs";
 
 export default function Home() {
   return (
@@ -15,7 +15,7 @@ export default function Home() {
       
       <main className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
         <Suspense fallback={<p>Cargando...</p>}>
-          <FileUploader />
+          <DashboardTabs />
         </Suspense>
       </main>
       
