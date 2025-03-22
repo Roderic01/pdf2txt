@@ -8,6 +8,7 @@ type OutputFormat = 'txt' | 'docx';
 export default function TextCleaner() {
   const [inputText, setInputText] = useState<string>('');
   const [outputText, setOutputText] = useState<string>('');
+  const [editableOutputText, setEditableOutputText] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -113,6 +114,7 @@ export default function TextCleaner() {
       
       // Mostrar el resultado
       setOutputText(cleanedText);
+      setEditableOutputText(cleanedText);
       setShowOutput(true);
       
       // Generar y descargar el archivo según el formato seleccionado
@@ -126,6 +128,11 @@ export default function TextCleaner() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Manejar cambios en el texto de salida editado
+  const handleOutputTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEditableOutputText(e.target.value);
   };
 
   const handleFormatChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,10 +298,9 @@ export default function TextCleaner() {
           <div className="border rounded-md bg-gray-50 dark:bg-gray-800">
             <textarea
               className="w-full h-full bg-transparent text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap border-none resize-none focus:outline-none focus:ring-0 p-3"
-              value={outputText}
-              readOnly
+              value={editableOutputText}
               rows={8}
-              onClick={(e) => e.currentTarget.select()}
+              onChange={handleOutputTextChange}
               onKeyDown={(e) => {
                 // Prevenir que Cmd+A se extienda fuera del textarea
                 if (e.key === 'a' && (e.metaKey || e.ctrlKey)) {
@@ -307,7 +313,7 @@ export default function TextCleaner() {
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
-                onClick={() => generateTxtFile(outputText, 'texto_limpio')}
+                onClick={() => generateTxtFile(editableOutputText, 'texto_limpio')}
                 className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 hover:bg-blue-200 border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Descargar como TXT
