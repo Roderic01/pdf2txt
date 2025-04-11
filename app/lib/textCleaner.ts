@@ -5,28 +5,36 @@ import { saveAs } from 'file-saver';
 import mammoth from 'mammoth';
 
 /**
- * Limpia texto eliminando texto dentro de paréntesis y caracteres especiales.
- * Mantiene la estructura de párrafos y todo el contenido relevante.
+ * Limpia texto eliminando caracteres especiales como -, #, *, () mientras
+ * mantiene la estructura de párrafos, espacios, títulos y subtítulos.
+ * También elimina las referencias que aparecen al final del documento.
  * @param text Texto a limpiar
  * @returns Texto limpio
  */
 export function cleanText(text: string): string {
-  if (!text) return '';
+  // 0. Eliminar referencias al final del texto
+  // Buscar "Referencias:" o similar en las últimas partes del texto
+  // Usamos case-insensitive match sin el flag 's'
+  const referenciasMatch = text.match(/referencias:?/i);
   
-  let cleanedText = text;
+  // Si encontramos la palabra "referencias", eliminamos desde ahí hasta el final
+  let textWithoutReferences = text;
+  if (referenciasMatch) {
+    // Obtener la posición donde aparece "referencias"
+    const referenciasIndex = text.toLowerCase().lastIndexOf("referencias");
+    if (referenciasIndex !== -1) {
+      // Tomar solo el texto antes de "referencias"
+      textWithoutReferences = text.substring(0, referenciasIndex);
+    }
+  }
   
-  // 1. Eliminar textos dentro de paréntesis
-  cleanedText = cleanedText.replace(/\([^)]*\)/g, '');
+  // 1. Eliminar textos dentro de paréntesis que podrían contener hipervínculos
+  let cleanedText = textWithoutReferences.replace(/\([^)]*\)/g, '');
   
   // 2. Eliminar los caracteres especiales -, #, *
-  // Primero, guardar los guiones entre palabras (como en "país-ciudad")
-  cleanedText = cleanedText.replace(/(\w)-(\w)/g, '$1_GUION_$2');
-  
-  // Eliminar guiones sueltos
-  cleanedText = cleanedText.replace(/[-]/g, '');
-  
-  // Restaurar los guiones entre palabras
-  cleanedText = cleanedText.replace(/_GUION_/g, '-');
+  // Reemplazar - pero preservar los guiones en medio de palabras
+  cleanedText = cleanedText.replace(/([^\w]|^)-+(?=\s|$)/g, '$1');  // Guiones al inicio de líneas/palabras
+  cleanedText = cleanedText.replace(/(?<=\s|^)-+(?=\s|$)/g, '');   // Guiones sueltos
   
   // Eliminar los caracteres # y *
   cleanedText = cleanedText.replace(/[#*]/g, '');
@@ -34,16 +42,17 @@ export function cleanText(text: string): string {
   // 3. Eliminar los paréntesis solos que hayan quedado
   cleanedText = cleanedText.replace(/[\(\)]/g, '');
   
-  // 4. Limpiar múltiples espacios en blanco consecutivos pero 
-  // preservar saltos de línea y estructura de párrafos
-  cleanedText = cleanedText.replace(/[ \t]+/g, ' ');
-  cleanedText = cleanedText.replace(/^ +| +$/gm, '');
+  // 4. Limpiar múltiples espacios en blanco y líneas vacías excesivas
+  // pero manteniendo la estructura de párrafos
+  cleanedText = cleanedText.replace(/[ \t]+/g, ' ');          // Múltiples espacios a uno solo
+  cleanedText = cleanedText.replace(/\n{3,}/g, '\n\n');       // Limitar a máximo 2 saltos de línea
+  cleanedText = cleanedText.replace(/^ +| +$/gm, '');         // Eliminar espacios al inicio y final de líneas
   
   return cleanedText;
 }
 
 /**
- * Procesa un archivo DOCX y limpia su contenido
+ * Procesa un archivo DOCX y limpia su contenido de hipervínculos y texto subrayado
  * @param file Archivo DOCX a procesar
  * @returns Promesa con el texto limpio
  */
@@ -55,7 +64,7 @@ export async function processDocxFile(file: File): Promise<string> {
     const result = await mammoth.extractRawText({ arrayBuffer });
     const extractedText = result.value;
     
-    // Limpiar el texto
+    // Limpiar el texto de hipervínculos y textos subrayados
     const cleanedText = cleanText(extractedText);
     
     return cleanedText;
